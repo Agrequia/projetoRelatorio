@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.service import Service
 from selenium.common.exceptions import NoSuchElementException 
+from selenium.webdriver.support.ui import Select
 import time
 
 def estaLogado(driver):
@@ -28,6 +29,13 @@ if not estaLogado(driver):
     driver.find_element(By.XPATH, "//input[@placeholder='Senha']").send_keys("6" + Keys.ENTER)
 
     time.sleep(5)
-else:
-    # Acessa a página onde sera configurado o relatório
-    driver.get("https://localhost:8080/HAND/pages/nfe/gerenciamento/search/searchGerenciamentoNfe.xhtml")
+
+# Acessa a página onde sera configurado o relatório
+driver.get("https://localhost:8080/HAND/pages/nfe/gerenciamento/search/searchGerenciamentoNfe.xhtml")
+
+time.sleep(3)
+
+# Configura o primeiro relatório
+dropDown = Select(driver.find_element(By.NAME, "j_idt93:j_idt94"))
+dropDown.select_by_visible_text("NFC-e")
+
