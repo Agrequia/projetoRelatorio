@@ -97,19 +97,13 @@ time.sleep(3)
 # Pressiona exportar notas
 driver.find_element(By.ID, "j_idt332").click()
 
-time.sleep(3)
+time.sleep(10)
 
 ### Fim da geração do primeiro arquivo, inicio do proximo ###
 
 # Acessa a página onde sera configurado o segundo relatório
 driver.get("https://localhost:8080/HAND/pages/entrada/porNota/search/searchEntradaPorNota.xhtml")
-time.sleep(3)
-
-# Configura o modelo de relatório
-dropDown = Select(driver.find_element(By.NAME, "j_idt304:j_idt305"))
-dropDown.select_by_visible_text("Nota Fiscal de Consumidor Eletronica ")
-
-time.sleep(3)
+time.sleep(10)
 
 # Limpa e insere periodo inicial e final
 # Periodo inicial
@@ -124,6 +118,13 @@ campo_fim.clear()
 campo_fim.send_keys(data_fim)
 
 time.sleep(3)
+
+# Configura o modelo de relatório
+dropDown = Select(driver.find_element(By.NAME, "j_idt304:j_idt305"))
+dropDown.select_by_visible_text("Nota Fiscal de Consumidor Eletronica")
+
+time.sleep(3)
+
 
 # Pressiona botao pesquisar
 driver.find_element(By.ID, "btnSalvarCadastro").click()
