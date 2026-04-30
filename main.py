@@ -73,4 +73,16 @@ campo_fim.send_keys(data_fim)
 
 time.sleep(3)
 
+# Pressiona botao pesquisar
 driver.find_element(By.ID, "btnPesquisar").click()
+
+# Seleciona todas as notas do periodo
+checkbox = driver.find_element(By.ID, "dtblNfe:j_idt66_input")
+
+# Se a checkbox nao estiver marcada, marca
+if not checkbox.is_selected():
+    checkbox.click()
+
+time.sleep(5)
+
+# Pressiona exportar
