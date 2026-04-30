@@ -77,10 +77,10 @@ time.sleep(3)
 driver.find_element(By.ID, "btnPesquisar").click()
 
 # Seleciona todas as notas do periodo
-checkbox = driver.find_element(By.ID, "dtblNfe:j_idt66_input")
+checkbox = driver.find_element(By.XPATH, "//input[@id='dtblNfe:j_idt66_input']/ancestor::div[contains(@class,'ui-chkbox-box')]")
 
 # Se a checkbox nao estiver marcada, marca
-if not checkbox.is_selected():
+if "ui-state-active" not in checkbox.get_attribute("class"):
     checkbox.click()
 
 time.sleep(5)
