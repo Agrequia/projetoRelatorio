@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException 
 from datetime import datetime, timedelta
 import time
+import requests
 
 def estaLogado(driver):
     try:
@@ -108,7 +109,7 @@ time.sleep(3)
 
 time.sleep(10)
 
-### Fim da geração do primeiro arquivo, inicio do proximo ###
+### Geração do segundo arquivo ###
 
 # Acessa a página onde sera configurado o segundo relatório
 driver.get("https://localhost:8080/HAND/pages/entrada/porNota/search/searchEntradaPorNota.xhtml")
@@ -153,3 +154,10 @@ dropDown.select_by_visible_text("Venda com NFC-e")
 
 # Pressiona PDF
 driver.find_element(By.ID, "j_idt62:j_idt65:j_idt76").click()
+
+### Identificar e renomear os arquivos ###
+
+
+
+### Enviar para contadora ###
+
