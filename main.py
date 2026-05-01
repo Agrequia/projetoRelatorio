@@ -95,7 +95,7 @@ if "ui-state-active" not in checkbox.get_attribute("class"):
 time.sleep(3)
 
 # Pressiona exportar notas
-driver.find_element(By.ID, "j_idt332").click()
+#driver.find_element(By.ID, "j_idt332").click()
 
 time.sleep(10)
 
@@ -125,6 +125,22 @@ dropDown.select_by_visible_text("Nota Fiscal de Consumidor Eletronica")
 
 time.sleep(3)
 
-
 # Pressiona botao pesquisar
 driver.find_element(By.ID, "btnSalvarCadastro").click()
+
+time.sleep(3)
+
+# Pressiona imprimir
+botao = wait.until(
+    EC.presence_of_element_located((By.XPATH, "//a[@title='Imprimir PDF']"))
+)
+driver.execute_script("arguments[0].scrollIntoView(true);", botao)
+wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@title='Imprimir PDF']")))
+driver.execute_script("arguments[0].click();", botao)
+
+# Seleciona o modelo
+dropDown = Select(driver.find_element(By.NAME, "j_idt62:j_idt65:comboModeloRelatorio:j_idt71"))
+dropDown.select_by_visible_text("Venda com NFC-e")
+
+# Pressiona PDF
+driver.find_element(By.ID, "j_idt62:j_idt65:j_idt76").click()
