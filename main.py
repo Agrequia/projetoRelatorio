@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException 
 from datetime import datetime, timedelta
 import time
-import requests
+import os
 
 def estaLogado(driver):
     try:
@@ -25,6 +25,17 @@ def criar_driver():
     service = Service(executable_path="geckodriver.exe")
 
     return webdriver.Firefox(service=service, options=options)
+
+def obtem_arquivos_recentes(pasta, extensoes=(".zip", ".pdf")):
+    arquivos = [
+        os.path.join(pasta, f)
+        for f in os.listdir(pasta)
+        if f.endswith(extensoes)
+    ]
+
+    arquivos.sort(key=os.path.getmtime, reverse = True)
+
+    return arquivos
 
 driver = criar_driver()
 wait = WebDriverWait(driver, 10) #Todos os time.sleep serao substituidos por isso futuramente
@@ -105,7 +116,7 @@ if "ui-state-active" not in checkbox.get_attribute("class"):
 time.sleep(3)
 
 # Pressiona exportar notas
-#driver.find_element(By.ID, "j_idt332").click()
+driver.find_element(By.ID, "j_idt332").click()
 
 time.sleep(10)
 
@@ -155,7 +166,18 @@ dropDown.select_by_visible_text("Venda com NFC-e")
 # Pressiona PDF
 driver.find_element(By.ID, "j_idt62:j_idt65:j_idt76").click()
 
+time.sleep(5)
+
 ### Identificar e renomear os arquivos ###
+# Local dos arquivos baixados
+pasta_downloads = r"C:\Users\Usuario\Downloads"
+
+# Função que obtem os arquivos mais recentes
+arquivos = obtem_arquivos_recentes(pasta_downloads)
+
+# Separa os arquivos em duas variaveis
+zip_file = next(f for f in arquivos if f.endswith(".zip"))
+pdf_file = next(f for f in arquivos if f.endswith(".pdf"))
 
 
 
