@@ -15,8 +15,17 @@ def estaLogado(driver):
     except NoSuchElementException:
         return False
 
-service = Service(executable_path="geckodriver.exe")
-driver = webdriver.Firefox(service=service)
+def criar_driver():
+    options = webdriver.FirefoxOptions()
+    options.set_preference("browser.download.folderlist", 2)
+    options.set_preference("browser.download.dir", r"C:\Users\Usuario\Downloads")
+    options.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf")
+    options.set_preference("pdfjs.disabled", True)
+    service = Service(executable_path="geckodriver.exe")
+
+    return webdriver.Firefox(service=service, options=options)
+
+driver = criar_driver()
 wait = WebDriverWait(driver, 10) #Todos os time.sleep serao substituidos por isso futuramente
 
 # Encontra o período para geração dos relatorios (primeiro e ultimo dia do mes anterior ao que nos encontramos)
