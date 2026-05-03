@@ -1,3 +1,6 @@
+import time
+import os
+import smtplib
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -7,11 +10,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException 
 from datetime import datetime, timedelta
 from email.message import EmailMessage
-import time
-import os
-import smtplib
 
-def estaLogado(driver):
+def esperar_downlad(pasta, extensao, timeout = 30):
+    inicio = time.time()
+    while time.time() - inicio < timeout:
+        arquivos = [f for f in os.listdir(pasta) if f.endswith(extensao)]
+        if arquivos:
+            return True
+        time.sleep(1)
+    raise TimeoutError(f"Download de {extensao} não concluido!")
+
+def esta_logado(driver):
     try:
         driver.find_element(By.XPATH, "//span[contains(text(),'NF-e')]")
         return True
@@ -72,6 +81,9 @@ def enviar_email(remetente, senha_app, destinatario, zip_path, pdf_path):
 
     print("Email enviado com sucesso!")
 
+# Local dos arquivos baixados
+pasta_downloads = r"C:\Users\Usuario\Downloads"
+
 driver = criar_driver()
 wait = WebDriverWait(driver, 10) #Todos os time.sleep serao substituidos por isso futuramente
 
@@ -80,26 +92,26 @@ hoje = datetime.today()
 
 # Primeiro dia do mes atual
 primeiro_dia_mes_atual = hoje.replace(day=1)
-
 # Último dia do mês anterior
 ultimo_dia_mes_anterior = primeiro_dia_mes_atual - timedelta(days=1)
-
 # Primeiro dia do mês anterior
 primeiro_dia_mes_anterior = ultimo_dia_mes_anterior.replace(day=1)
-
 # Mes anterior formato mm-yyyy (para renomear os arquivos baixados)
 mes_ref = primeiro_dia_mes_anterior.strftime("%m-%Y") 
-
 # Formata no padrao dd/mm/yyyy
 data_inicio = primeiro_dia_mes_anterior.strftime("%d/%m/%Y")
 data_fim = ultimo_dia_mes_anterior.strftime("%d/%m/%Y")
 
 # Acessa o hand
 driver.get("https://localhost:8080/HAND/")
-time.sleep(3)
 
-if not estaLogado(driver):
+if not esta_logado(driver):
     print("Não está logado! Realizando login...")
+    
+    # Aguarda a página carregar
+    wait.until(
+        EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Login']"))
+    )
 
     # Preenche o login
     driver.find_element(By.XPATH, "//input[@placeholder='Login']").send_keys("6")
@@ -107,36 +119,43 @@ if not estaLogado(driver):
     # Preenche a senha + Enter
     driver.find_element(By.XPATH, "//input[@placeholder='Senha']").send_keys("6" + Keys.ENTER)
 
-    time.sleep(3)
+    wait.until(
+        EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'NFC-e')]"))
+    )
+
+
 
 # Acessa a página onde sera configurado o relatório
 driver.get("https://localhost:8080/HAND/pages/nfe/gerenciamento/search/searchGerenciamentoNfe.xhtml")
-
-time.sleep(3)
+wait.until(
+    EC.presence_of_element_located((By.XPATH, "//input[contains(@name,'dtInicio')]"))
+)
 
 # Configura o primeiro relatório
-dropDown = Select(driver.find_element(By.NAME, "j_idt93:j_idt94"))
+dropDown = Select(wait.until(
+    EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), 'Modelo de Documento Fiscal')]/following::select[1]"))
+))
 dropDown.select_by_visible_text("NFC-e")
-
-time.sleep(3)
 
 # Limpa e insere periodo inicial e final
 # Periodo inicial
-campo_inicio = driver.find_element(By.NAME, "j_idt100:dtInicio:dtInicio_input")
+campo_inicio = wait.until(
+    EC.element_to_be_clickable((By.XPATH, "//input[contains(@name,'dtInicio')]"))
+)
 campo_inicio.clear()
 campo_inicio.send_keys(data_inicio)
 
-time.sleep(3)
-
 # Periodo final
-campo_fim = driver.find_element(By.NAME, "j_idt100:dtFim:dtFim_input")
+campo_fim = wait.until(
+    EC.element_to_be_clickable((By.XPATH, "//input[contains(@name,'dtFim')]"))
+)
 campo_fim.clear()
 campo_fim.send_keys(data_fim)
 
-time.sleep(3)
-
 # Pressiona botao pesquisar
-driver.find_element(By.ID, "btnPesquisar").click()
+wait.until(
+    EC.element_to_be_clickable((By.ID, "btnPesquisar"))
+).click()
 
 # Aguarda o driver carregar
 wait = WebDriverWait(driver, 10)
@@ -151,12 +170,12 @@ checkbox = wait.until(
 if "ui-state-active" not in checkbox.get_attribute("class"):
     checkbox.click()
 
-time.sleep(3)
+# Pressiona exportar notas
+wait.until(
+    EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Exportar')]"))
+)
 
-# Pressiona exportar notas -- mudou o id
-driver.find_element(By.ID, "j_idt338").click()
-
-time.sleep(10)
+esperar_downlad(pasta_downloads, ".zip")
 
 ### Geração do segundo arquivo ###
 
@@ -207,9 +226,6 @@ driver.find_element(By.ID, "j_idt62:j_idt65:j_idt76").click()
 time.sleep(10)
 
 ### Identificar e renomear os arquivos ###
-# Local dos arquivos baixados
-pasta_downloads = r"C:\Users\Usuario\Downloads"
-
 # Função que obtem os arquivos mais recentes
 arquivos = obtem_arquivos_recentes(pasta_downloads)
 
