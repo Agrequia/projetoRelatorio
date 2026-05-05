@@ -11,12 +11,14 @@ from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 
-def esperar_downlad(pasta, extensao, timeout = 30):
+def esperar_downlad(pasta, snapshot, extensao, timeout = 30):
     inicio = time.time()
     while time.time() - inicio < timeout:
-        arquivos = [f for f in os.listdir(pasta) if f.endswith(extensao)]
-        if arquivos:
-            return True
+        arquivos_depois = set(os.listdir(pasta))
+        novos = arquivos_depois - snapshot
+        for arquivo in novos:
+            if arquivo.endswith(extensao):
+                return os.path.join(pasta, arquivo)
         time.sleep(1)
     raise TimeoutError(f"Download de {extensao} não concluido!")
 
@@ -36,17 +38,6 @@ def criar_driver():
     service = Service(executable_path="geckodriver.exe")
 
     return webdriver.Firefox(service=service, options=options)
-
-def obtem_arquivos_recentes(pasta, extensoes=(".zip", ".pdf")):
-    arquivos = [
-        os.path.join(pasta, f)
-        for f in os.listdir(pasta)
-        if f.endswith(extensoes)
-    ]
-
-    arquivos.sort(key=os.path.getmtime, reverse = True)
-
-    return arquivos
 
 def enviar_email(remetente, senha_app, destinatario, zip_path, pdf_path):
     msg = EmailMessage()
@@ -170,32 +161,43 @@ checkbox = wait.until(
 if "ui-state-active" not in checkbox.get_attribute("class"):
     checkbox.click()
 
+# Snapshot dos arquivos antes do download
+snapshot_arquivos = set(os.listdir(pasta_downloads))
+
+# Aguarda página carregar:
+wait.until(
+    EC.invisibility_of_element_located((By.ID, "loadingModal"))
+)
+
 # Pressiona exportar notas
 wait.until(
     EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Exportar')]"))
-)
+).click()
 
-esperar_downlad(pasta_downloads, ".zip")
+zip_path = esperar_downlad(pasta_downloads, snapshot_arquivos, ".zip")
 
 ### Geração do segundo arquivo ###
 
 # Acessa a página onde sera configurado o segundo relatório
 driver.get("https://localhost:8080/HAND/pages/entrada/porNota/search/searchEntradaPorNota.xhtml")
-time.sleep(10)
+
+# Pega os campos de data da pagina:
+campos_data = wait.until(
+    EC.presence_of_all_element_located(
+        (By.XPATH, "//input[contains(@class,'hasDatePicker')]")
+    )
+)
 
 # Limpa e insere periodo inicial e final
 # Periodo inicial
-campo_inicio = driver.find_element(By.NAME, "j_idt65:j_idt66:j_idt66_input")
+campo_inicio = campos_data[0]
 campo_inicio.clear()
 campo_inicio.send_keys(data_inicio)
-time.sleep(3)
 
 # Periodo final
-campo_fim = driver.find_element(By.NAME, "j_idt70:j_idt71:j_idt71_input")
+campo_fim = campos_data[1]
 campo_fim.clear()
 campo_fim.send_keys(data_fim)
-
-time.sleep(3)
 
 # Configura o modelo de relatório
 dropDown = Select(driver.find_element(By.NAME, "j_idt304:j_idt305"))
@@ -226,20 +228,13 @@ driver.find_element(By.ID, "j_idt62:j_idt65:j_idt76").click()
 time.sleep(10)
 
 ### Identificar e renomear os arquivos ###
-# Função que obtem os arquivos mais recentes
-arquivos = obtem_arquivos_recentes(pasta_downloads)
-
-# Separa os arquivos em duas variaveis
-zip_file = next(f for f in arquivos if f.endswith(".zip"))
-pdf_file = next(f for f in arquivos if f.endswith(".pdf"))
-
 # Novo nome dos arquivos
 novo_zip = os.path.join(pasta_downloads, f"NFE_{mes_ref}.zip")
 novo_pdf = os.path.join(pasta_downloads, f"NFCe_{mes_ref}.pdf")
 
 # Renomeia os arquivos
-os.rename(zip_file, novo_zip)
-os.rename(pdf_file, novo_pdf)
+os.rename(zip_path, novo_zip)
+#os.rename(pdf_file, novo_pdf)
 
 time.sleep(10)
 
