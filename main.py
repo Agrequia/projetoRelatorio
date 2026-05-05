@@ -181,51 +181,95 @@ zip_path = esperar_downlad(pasta_downloads, snapshot_arquivos, ".zip")
 # Acessa a página onde sera configurado o segundo relatório
 driver.get("https://localhost:8080/HAND/pages/entrada/porNota/search/searchEntradaPorNota.xhtml")
 
-# Pega os campos de data da pagina:
-campos_data = wait.until(
-    EC.presence_of_all_element_located(
-        (By.XPATH, "//input[contains(@class,'hasDatePicker')]")
-    )
-)
-
 # Limpa e insere periodo inicial e final
 # Periodo inicial
-campo_inicio = campos_data[0]
+campo_inicio = wait.until(
+    EC.element_to_be_clickable(
+        (By.XPATH, "(//input[contains(@class,'hasDatepicker')])[1]")
+    )
+)
 campo_inicio.clear()
 campo_inicio.send_keys(data_inicio)
 
 # Periodo final
-campo_fim = campos_data[1]
+campo_fim = wait.until(
+    EC.element_to_be_clickable(
+        (By.XPATH, "(//input[contains(@class,'hasDatepicker')])[2]")
+    )
+)
 campo_fim.clear()
 campo_fim.send_keys(data_fim)
 
 # Configura o modelo de relatório
-dropDown = Select(driver.find_element(By.NAME, "j_idt304:j_idt305"))
-dropDown.select_by_visible_text("Nota Fiscal de Consumidor Eletronica")
-
-time.sleep(3)
+dropDown = Select(wait.until(
+    EC.element_to_be_clickable((
+        By.XPATH,
+        "//div[contains(@class,'ItemFiltro') and text()='Modelo']/following::select[1]"
+    ))
+))
+for option in dropDown.options:
+    if "Consumidor" in option.text:
+        option.click()
+        break
 
 # Pressiona botao pesquisar
-driver.find_element(By.ID, "btnSalvarCadastro").click()
+wait.until(
+    EC.element_to_be_clickable((By.XPATH,"//button[.//span[contains(text(),'Consultar')]]"))
+)
 
-time.sleep(3)
+# Espera terminar carregamento
+wait.until(
+    EC.invisibility_of_element_located((By.ID,"loadingModal"))
+)
+
+# Esperar elemento carregado
+wait.until(
+    EC.presence_of_element_located((By.XPATH,"//div[contains(@class,'box-icon')]"))
+)
 
 # Pressiona imprimir
 botao = wait.until(
-    EC.presence_of_element_located((By.XPATH, "//a[@title='Imprimir PDF']"))
+    EC.element_to_be_clickable((By.XPATH, "//a[@title='Imprimir PDF']"))
 )
-driver.execute_script("arguments[0].scrollIntoView(true);", botao)
-wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@title='Imprimir PDF']")))
 driver.execute_script("arguments[0].click();", botao)
 
+# Aguarda modal carregar
+wait.until(
+    EC.visibility_of_element_located((
+        By.XPATH, "//div[contains(@class,'ui-dialog') and .//div[contains(text(),'Modelo do Relatório)]]"
+    ))
+)
+
 # Seleciona o modelo
-dropDown = Select(driver.find_element(By.NAME, "j_idt62:j_idt65:comboModeloRelatorio:j_idt71"))
-dropDown.select_by_visible_text("Venda com NFC-e")
+dropDown = Select(wait.until(
+    EC.element_to_be_clickable((
+        By.XPATH,
+        "//div[contains(text(),'Modelo do Relatório')]//following::select[1]"
+    ))    
+))
+
+for option in dropDown.options:
+    if "NFC-e" in option.text:
+        option.click()
+        break
+
+# Snapshot antes
+snapshot_arquivos = set(os.listdir(pasta_downloads))
+
+wait.until(
+    EC.invisibility_of_element_located((By.ID,"loadingModal"))
+)
 
 # Pressiona PDF
-driver.find_element(By.ID, "j_idt62:j_idt65:j_idt76").click()
+wait.until(
+    EC.element_to_be_clickable((
+        By.XPATH,
+        "//button[.span[text()='PDF']]"
+    ))
+).click()
 
-time.sleep(10)
+# Espera conclusao do download:
+pdf_path = esperar_downlad(pasta_downloads, snapshot_arquivos, ".pdf")
 
 ### Identificar e renomear os arquivos ###
 # Novo nome dos arquivos
