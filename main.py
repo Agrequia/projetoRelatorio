@@ -1,6 +1,9 @@
-import time
 import os
+import time
 import smtplib
+import logging
+from email.message import EmailMessage
+from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -8,8 +11,24 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException 
-from datetime import datetime, timedelta
-from email.message import EmailMessage
+
+def configurar_log():
+    pasta_logs = "logs"
+    os.makedirs(pasta_logs, exist_ok=True)
+
+    data_hoje = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    arquivo_log = os.path.join(pasta_logs, f"log_{data_hoje}.txt")
+
+    logging.basicConfig(
+        level = logging.INFO,
+        format = "%(asctime)s | %(levelname)s | %(message)s",
+        handlers = [
+            logging.FileHandler(arquivo_log, encoding = "utf-8"),
+            logging.StreamHandler() #Mostra tambem no terminal
+        ]
+    )
+
+    return arquivo_log
 
 def esperar_downlad(pasta, snapshot, extensao, timeout = 30):
     inicio = time.time()
@@ -72,12 +91,19 @@ def enviar_email(remetente, senha_app, destinatario, zip_path, pdf_path):
 
     print("Email enviado com sucesso!")
 
+# Configura o log
+log_file = configurar_log()
+
+logging.info("=== INÍCIO DA EXECUÇÃO ===")
+
 # Local dos arquivos baixados
 pasta_downloads = r"C:\Users\Usuario\Downloads"
 
 driver = criar_driver()
 wait = WebDriverWait(driver, 10) #Todos os time.sleep serao substituidos por isso futuramente
 try:
+    logging.info("Iniciando automação!")
+
     # Encontra o período para geração dos relatorios (primeiro e ultimo dia do mes anterior ao que nos encontramos)
     hoje = datetime.today()
 
@@ -96,10 +122,11 @@ try:
     hora = hoje.strftime("%H_%M_%S")
 
     # Acessa o hand
+    logging.info("Acessando sistema HAND")
     driver.get("https://localhost:8080/HAND/")
 
     if not esta_logado(driver):
-        print("Não está logado! Realizando login...")
+        logging.warning("Uauário não está logado, realizando login...")
         
         # Aguarda a página carregar
         wait.until(
@@ -119,6 +146,7 @@ try:
 
 
     # Acessa a página onde sera configurado o relatório
+    logging.info("Acessando página do primeiro relatório")
     driver.get("https://localhost:8080/HAND/pages/nfe/gerenciamento/search/searchGerenciamentoNfe.xhtml")
     wait.until(
         EC.presence_of_element_located((By.XPATH, "//input[contains(@name,'dtInicio')]"))
@@ -132,6 +160,7 @@ try:
 
     # Limpa e insere periodo inicial e final
     # Periodo inicial
+    logging.info("Período selecionado: {data_inicio} até {data_fim}")
     campo_inicio = wait.until(
         EC.element_to_be_clickable((By.XPATH, "//input[contains(@name,'dtInicio')]"))
     )
@@ -172,15 +201,17 @@ try:
     )
 
     # Pressiona exportar notas
+    logging.info("Gerando relatório NF-e")
     wait.until(
         EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Exportar')]"))
     ).click()
 
     zip_path = esperar_downlad(pasta_downloads, snapshot_arquivos, ".zip")
-
+    logging.info("Arquivo .zip baixado: {zip_path}")
     ### Geração do segundo arquivo ###
 
     # Acessa a página onde sera configurado o segundo relatório
+    logging.info("Acessando página do segundo relatório")
     driver.get("https://localhost:8080/HAND/pages/entrada/porNota/search/searchEntradaPorNota.xhtml")
 
     # Limpa e insere periodo inicial e final
@@ -263,6 +294,7 @@ try:
     )
 
     # Pressiona PDF
+    logging.info("Gerando relatório NFC-e")
     wait.until(
         EC.element_to_be_clickable((
             By.XPATH,
@@ -272,7 +304,7 @@ try:
 
     # Espera conclusao do download:
     pdf_path = esperar_downlad(pasta_downloads, snapshot_arquivos, ".pdf")
-
+    logging.info("Arquivo .pdf baixado: {pdf_path}")
     ### Identificar e renomear os arquivos ###
 
     # Novo nome dos arquivos
@@ -280,10 +312,12 @@ try:
     novo_pdf = os.path.join(pasta_downloads, f"NFCe_{mes_ref}_{hora}.pdf")
 
     # Renomeia os arquivos
+    logging.info("Renomeando os arquivos para envio")
     os.rename(zip_path, novo_zip)
     os.rename(pdf_path, novo_pdf)
 
     ### Enviar para contadora ###
+    logging.info("Enviando email")
     enviar_email(
         remetente = "mariabombomcco@gmail.com",
         senha_app = os.getenv("EMAIL_SENHA"),
@@ -292,6 +326,12 @@ try:
         pdf_path = novo_pdf
     )
 
+    logging.info("Automação finalizada com sucesso!")
+
+except Exception as e:
+    logging.error("Erro durante execução!", exc_info = True)
+
 finally:
     # Fecha o navegador
+    logging.info("Fechando navegador")
     driver.quit()
