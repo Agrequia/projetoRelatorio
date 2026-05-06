@@ -89,7 +89,7 @@ def enviar_email(remetente, senha_app, destinatario, zip_path, pdf_path):
         smtp.login(remetente, senha_app)
         smtp.send_message(msg)
 
-    print("Email enviado com sucesso!")
+    logging.info("Email enviado com sucesso!")
 
 # Configura o log
 log_file = configurar_log()
@@ -160,7 +160,7 @@ try:
 
     # Limpa e insere periodo inicial e final
     # Periodo inicial
-    logging.info("Período selecionado: {data_inicio} até {data_fim}")
+    logging.info(f"Período selecionado: {data_inicio} até {data_fim}")
     campo_inicio = wait.until(
         EC.element_to_be_clickable((By.XPATH, "//input[contains(@name,'dtInicio')]"))
     )
@@ -207,7 +207,7 @@ try:
     ).click()
 
     zip_path = esperar_downlad(pasta_downloads, snapshot_arquivos, ".zip")
-    logging.info("Arquivo .zip baixado: {zip_path}")
+    logging.info(f"Arquivo .zip baixado: {zip_path}")
     ### Geração do segundo arquivo ###
 
     # Acessa a página onde sera configurado o segundo relatório
@@ -304,7 +304,7 @@ try:
 
     # Espera conclusao do download:
     pdf_path = esperar_downlad(pasta_downloads, snapshot_arquivos, ".pdf")
-    logging.info("Arquivo .pdf baixado: {pdf_path}")
+    logging.info(f"Arquivo .pdf baixado: {pdf_path}")
     ### Identificar e renomear os arquivos ###
 
     # Novo nome dos arquivos
