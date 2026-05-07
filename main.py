@@ -321,7 +321,7 @@ try:
     enviar_email(
         remetente = "mariabombomcco@gmail.com",
         senha_app = os.getenv("EMAIL_SENHA"),
-        destinatario = "arthurrodrigueslima@gmail.com",
+        destinatario = "consepticb@gmail.com",
         zip_path = novo_zip,
         pdf_path = novo_pdf
     )
